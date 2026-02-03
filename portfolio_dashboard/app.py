@@ -57,13 +57,18 @@ def _dataframe_for_st_display(frame: pd.DataFrame) -> pd.DataFrame:
     out = frame.copy()
     for col in out.columns:
         ser = out[col]
-        # object, string, category can serialize as LargeUtf8; force plain str
         if (
-            pd.api.types.is_object_dtype(ser)
-            or pd.api.types.is_string_dtype(ser)
-            or pd.api.types.is_categorical_dtype(ser)
+            pd.api.types.is_integer_dtype(ser)
+            or pd.api.types.is_float_dtype(ser)
+            or pd.api.types.is_bool_dtype(ser)
         ):
-            out[col] = ser.astype(object).fillna("").astype(str)
+            continue
+        # Force plain object dtype with Python str so Arrow uses Utf8, not LargeUtf8
+        out[col] = pd.Series(
+            [str(x) if pd.notna(x) else "" for x in ser],
+            index=ser.index,
+            dtype=object,
+        )
     return out
 
 
