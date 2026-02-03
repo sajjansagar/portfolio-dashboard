@@ -1,6 +1,7 @@
 # Added Smart Exit Plan and reallocation panel outputs.
 from pathlib import Path
 import logging
+import os
 
 import pandas as pd
 import plotly.express as px
@@ -28,18 +29,27 @@ from portfolio_dashboard.db import clear_table, load_table, upsert_holdings
 from portfolio_dashboard.metrics import compute_metrics, format_currency, format_percent
 
 
-# Added smart exit plan and reallocation outputs.
 def configure_logging() -> logging.Logger:
-    log_dir = Path("data")
-    log_dir.mkdir(parents=True, exist_ok=True)
-    log_path = log_dir / "streamlit.log"
-
+    # Skip file logging on Streamlit Cloud to avoid slow/ephemeral disk
+    use_file = os.environ.get("PORTFOLIO_FILE_LOG",
+                              "").lower() in ("1", "true", "yes")
+    handlers: list[logging.Handler] = [logging.StreamHandler()]
+    if use_file:
+        log_dir = Path("data")
+        log_dir.mkdir(parents=True, exist_ok=True)
+        handlers.append(logging.FileHandler(log_dir / "streamlit.log"))
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-        handlers=[logging.FileHandler(log_path), logging.StreamHandler()],
+        handlers=handlers,
     )
     return logging.getLogger("portfolio_dashboard")
+
+
+@st.cache_data(ttl=300)
+def _cached_load_table(latest_only: bool) -> pd.DataFrame:
+    """Cached DB read to avoid repeated heavy work on reruns."""
+    return load_table(latest_only=latest_only)
 
 
 def main() -> None:
@@ -83,6 +93,7 @@ def main() -> None:
 
         if st.button("Clear database", type="secondary"):
             clear_table()
+            _cached_load_table.clear()
             st.success("Database cleared. Load a CSV to continue.")
             st.stop()
 
@@ -106,11 +117,12 @@ def main() -> None:
                     "No usable rows found after cleaning. Check the CSV format.")
                 st.stop()
             df = upsert_holdings(cleaned_df)
+            _cached_load_table.clear()
             st.success(
                 f"Loaded {len(cleaned_df)} rows. Database now has {len(df)} rows."
             )
         else:
-            df = load_table(latest_only=False)
+            df = _cached_load_table(False)
             if "loaded_at" in df.columns and not df.empty:
                 load_options = (
                     df["loaded_at"]
