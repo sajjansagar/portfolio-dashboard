@@ -11,14 +11,32 @@ NEUTRAL_COLOR = "#7A7A7A"
 
 
 def allocation_pie(df: pd.DataFrame, top_n: int) -> go.Figure:
-    allocation_df = df.nlargest(top_n, "Value at Market Price")
+    allocation_df = df.nlargest(top_n, "Value at Market Price").copy()
+    market_vals = pd.to_numeric(
+        allocation_df["Value at Market Price"], errors="coerce"
+    ).fillna(0)
+    # If in lakhs (max <= 100), convert to INR for display
+    if market_vals.max() > 0 and market_vals.max() <= 100:
+        market_vals = market_vals * 100_000
+    allocation_df["Value at Market Price"] = market_vals
+    allocation_df["_hover_value"] = market_vals.map(
+        lambda v: format_currency(v))
     fig = px.pie(
         allocation_df,
         values="Value at Market Price",
         names="Stock Symbol",
         hole=0.55,
+        custom_data=["_hover_value"],
     )
-    fig.update_traces(textposition="inside", textinfo="percent+label")
+    fig.update_traces(
+        textposition="inside",
+        textinfo="percent+label",
+        hovertemplate=(
+            "<b>%{label}</b><br>"
+            "Value at Market Price: %{customdata[0]}<br>"
+            "Share: %{percent}<extra></extra>"
+        ),
+    )
     fig.update_layout(showlegend=False, margin=dict(t=10, l=10, r=10, b=10))
     return fig
 
