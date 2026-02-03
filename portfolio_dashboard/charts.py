@@ -8,7 +8,6 @@ from portfolio_dashboard.metrics import format_currency
 POS_COLOR = "#4C956C"
 NEG_COLOR = "#D97A6A"
 NEUTRAL_COLOR = "#7A7A7A"
-HEATMAP_SCALE = [NEG_COLOR, "#F1EEE9", POS_COLOR]
 
 
 def allocation_pie(df: pd.DataFrame, top_n: int) -> go.Figure:
@@ -104,54 +103,6 @@ def cost_market_waterfall_for_df(df: pd.DataFrame) -> go.Figure:
         margin=dict(t=10, l=10, r=10, b=10),
     )
     return fig
-
-
-def unrealized_heatmap(df: pd.DataFrame) -> go.Figure:
-    ordered = df.sort_values("Unrealized P&L", ascending=True)
-    heatmap_df = ordered[["Stock Symbol", "Unrealized P&L"]].set_index(
-        "Stock Symbol"
-    )
-    text_values = heatmap_df.T.apply(
-        lambda col: col.map(lambda x: f"₹{x:,.0f}" if pd.notna(x) else "")
-    ).values
-    fig = px.imshow(
-        heatmap_df.T,
-        color_continuous_scale=HEATMAP_SCALE,
-        aspect="auto",
-    )
-    fig.update_traces(text=text_values,
-                      texttemplate="%{text}", textfont_size=10)
-    fig.update_layout(
-        xaxis_title="",
-        yaxis_title="",
-        coloraxis_showscale=False,
-        margin=dict(t=10, l=10, r=10, b=10),
-    )
-    return fig
-
-
-def unrealized_heatmap_positive(df: pd.DataFrame) -> go.Figure:
-    filtered = df[df["Unrealized P&L"] > 0]
-    if filtered.empty:
-        return px.imshow([[0]], aspect="auto").update_layout(
-            xaxis_title="",
-            yaxis_title="",
-            coloraxis_showscale=False,
-            margin=dict(t=10, l=10, r=10, b=10),
-        )
-    return unrealized_heatmap(filtered)
-
-
-def unrealized_heatmap_negative(df: pd.DataFrame) -> go.Figure:
-    filtered = df[df["Unrealized P&L"] < 0]
-    if filtered.empty:
-        return px.imshow([[0]], aspect="auto").update_layout(
-            xaxis_title="",
-            yaxis_title="",
-            coloraxis_showscale=False,
-            margin=dict(t=10, l=10, r=10, b=10),
-        )
-    return unrealized_heatmap(filtered)
 
 
 def unrealized_bucket_bar(df: pd.DataFrame) -> go.Figure:

@@ -15,9 +15,6 @@ from portfolio_dashboard.charts import (
     top_holdings_bar,
     unrealized_bucket_bar,
     unrealized_bucket_stacked,
-    unrealized_heatmap,
-    unrealized_heatmap_negative,
-    unrealized_heatmap_positive,
 )
 from portfolio_dashboard.data import (
     add_exit_fields,
@@ -231,17 +228,6 @@ def main() -> None:
 
         st.subheader("Cost Allocation by Performance")
         st.plotly_chart(cost_performance_pie(df), use_container_width=True)
-
-        st.subheader("Unrealized P&L Heatmap (₹)")
-        st.plotly_chart(unrealized_heatmap(df), use_container_width=True)
-
-        st.subheader("Unrealized P&L Heatmap (₹, Positive)")
-        st.plotly_chart(unrealized_heatmap_positive(df),
-                        use_container_width=True)
-
-        st.subheader("Unrealized P&L Heatmap (₹, Negative)")
-        st.plotly_chart(unrealized_heatmap_negative(df),
-                        use_container_width=True)
 
         st.subheader("Unrealized P&L % Buckets (Market Value)")
         st.plotly_chart(unrealized_bucket_bar(df), use_container_width=True)
