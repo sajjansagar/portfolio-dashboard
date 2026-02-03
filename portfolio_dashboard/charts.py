@@ -12,25 +12,24 @@ NEUTRAL_COLOR = "#7A7A7A"
 
 
 def allocation_pie(df: pd.DataFrame, top_n: int) -> go.Figure:
-    # Ensure numeric; sort by value descending and take top N
+    # Numeric Value at Market Price (same scale as rest of app)
     market_vals = pd.to_numeric(
         df["Value at Market Price"], errors="coerce"
     ).fillna(0)
     # If in lakhs (max <= 100), convert to INR
     if market_vals.max() > 0 and market_vals.max() <= 100:
         market_vals = market_vals * 100_000
-    allocation_df = (
-        df.assign(_value=market_vals)
-        .sort_values("_value", ascending=False)
-        .head(top_n)
-        .copy()
-    )
-    values = allocation_df["_value"].values
-    total = float(values.sum())
+    # Top N by market value: use indices then build explicit arrays (no alignment issues)
+    top_idx = market_vals.nlargest(top_n).index
+    symbols = df.loc[top_idx, "Stock Symbol"].values
+    values_arr = np.asarray(market_vals.loc[top_idx], dtype=float)
+    total = float(values_arr.sum())
     if total <= 0:
-        # Fallback: equal weights if no positive values
-        allocation_df["_value"] = np.ones(
-            len(allocation_df)) / len(allocation_df)
+        values_arr = np.ones(len(values_arr)) / len(values_arr)
+    allocation_df = pd.DataFrame({
+        "Stock Symbol": symbols,
+        "_value": values_arr,
+    })
     allocation_df["_hover_value"] = allocation_df["_value"].map(
         lambda v: format_currency(v)
     )
