@@ -51,6 +51,12 @@ def main() -> None:
             layout="wide",
             initial_sidebar_state="expanded",
         )
+
+        def _stringify_object_cols(frame: pd.DataFrame) -> pd.DataFrame:
+            frame = frame.copy()
+            for col in frame.select_dtypes(include=["object"]).columns:
+                frame[col] = frame[col].astype(str)
+            return frame
         st.title("Equity Portfolio Dashboard")
         st.caption(
             "Drop CSVs into the input folder and load them into the database."
@@ -257,7 +263,8 @@ def main() -> None:
             }
         )
 
-        st.dataframe(sorted_df, use_container_width=True, height=320)
+        st.dataframe(_stringify_object_cols(sorted_df),
+                     use_container_width=True, height=320)
 
         export_csv = sorted_df.to_csv(index=False).encode("utf-8")
         summary_csv = summary_df.to_csv(index=False).encode("utf-8")
@@ -325,7 +332,8 @@ def main() -> None:
         card4.metric("% Loss", format_percent(loss_pct))
 
         st.subheader("Exit Priority List")
-        st.dataframe(priority_df, use_container_width=True, height=320)
+        st.dataframe(_stringify_object_cols(priority_df),
+                     use_container_width=True, height=320)
 
         st.subheader("Top Draggers")
         top_draggers = (
@@ -394,7 +402,8 @@ def main() -> None:
         st.caption(
             "Computed as 100% of EXIT exposure + 35% of PARTIAL EXIT exposure."
         )
-        st.dataframe(allocation_df, use_container_width=True, height=220)
+        st.dataframe(_stringify_object_cols(allocation_df),
+                     use_container_width=True, height=220)
 
         tagged_csv = df.to_csv(index=False).encode("utf-8")
         realloc_csv = allocation_df.to_csv(index=False).encode("utf-8")
