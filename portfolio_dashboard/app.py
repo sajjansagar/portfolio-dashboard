@@ -307,7 +307,7 @@ def main() -> None:
             ["EXIT", "PARTIAL EXIT", "HOLD"],
             default=["EXIT", "PARTIAL EXIT", "HOLD"],
         )
-        risk_only = st.toggle("Risk flag only", value=False)
+        risk_only = st.checkbox("Risk flag only", value=False)
         min_exposure = st.slider("Min exposure %", 0.0, 20.0, 0.0, 0.5)
 
         exit_df = df.copy()
