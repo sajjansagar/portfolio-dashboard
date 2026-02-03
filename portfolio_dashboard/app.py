@@ -158,7 +158,7 @@ def main() -> None:
         col6.metric("Unrealized P&L", format_currency(unrealized_total))
         col7.metric("Unrealized P&L %", format_percent(unrealized_pct))
 
-        st.divider()
+        st.markdown("---")
 
         left, right = st.columns((1.2, 1))
         with left:
@@ -270,7 +270,7 @@ def main() -> None:
             "Download Summary CSV", summary_csv, file_name="portfolio_summary.csv"
         )
 
-        st.divider()
+        st.markdown("---")
         st.subheader("Smart Exit Plan")
 
         exit_tags = st.multiselect(
