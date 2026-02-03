@@ -52,6 +52,21 @@ def _cached_load_table(latest_only: bool) -> pd.DataFrame:
     return load_table(latest_only=latest_only)
 
 
+def _dataframe_for_st_display(frame: pd.DataFrame) -> pd.DataFrame:
+    """Convert dataframe to Arrow-safe dtypes to avoid LargeUtf8 serialization errors."""
+    out = frame.copy()
+    for col in out.columns:
+        ser = out[col]
+        # object, string, category can serialize as LargeUtf8; force plain str
+        if (
+            pd.api.types.is_object_dtype(ser)
+            or pd.api.types.is_string_dtype(ser)
+            or pd.api.types.is_categorical_dtype(ser)
+        ):
+            out[col] = ser.astype(object).fillna("").astype(str)
+    return out
+
+
 def main() -> None:
     logger = configure_logging()
     try:
@@ -62,11 +77,6 @@ def main() -> None:
             initial_sidebar_state="expanded",
         )
 
-        def _stringify_object_cols(frame: pd.DataFrame) -> pd.DataFrame:
-            frame = frame.copy()
-            for col in frame.select_dtypes(include=["object"]).columns:
-                frame[col] = frame[col].astype(str)
-            return frame
         st.title("Equity Portfolio Dashboard")
         st.caption(
             "Drop CSVs into the input folder and load them into the database."
@@ -275,7 +285,7 @@ def main() -> None:
             }
         )
 
-        st.dataframe(_stringify_object_cols(sorted_df),
+        st.dataframe(_dataframe_for_st_display(sorted_df),
                      use_container_width=True, height=320)
 
         export_csv = sorted_df.to_csv(index=False).encode("utf-8")
@@ -344,7 +354,7 @@ def main() -> None:
         card4.metric("% Loss", format_percent(loss_pct))
 
         st.subheader("Exit Priority List")
-        st.dataframe(_stringify_object_cols(priority_df),
+        st.dataframe(_dataframe_for_st_display(priority_df),
                      use_container_width=True, height=320)
 
         st.subheader("Top Draggers")
@@ -414,7 +424,7 @@ def main() -> None:
         st.caption(
             "Computed as 100% of EXIT exposure + 35% of PARTIAL EXIT exposure."
         )
-        st.dataframe(_stringify_object_cols(allocation_df),
+        st.dataframe(_dataframe_for_st_display(allocation_df),
                      use_container_width=True, height=220)
 
         tagged_csv = df.to_csv(index=False).encode("utf-8")
