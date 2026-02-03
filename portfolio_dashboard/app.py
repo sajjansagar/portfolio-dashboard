@@ -68,6 +68,13 @@ def main() -> None:
         input_dir.mkdir(parents=True, exist_ok=True)
         csv_files = sorted(input_dir.glob("*.csv"))
 
+        uploaded_csv = st.file_uploader("Upload CSV", type=["csv"])
+        if uploaded_csv is not None:
+            target_path = input_dir / uploaded_csv.name
+            target_path.write_bytes(uploaded_csv.getbuffer())
+            st.success(f"Uploaded {uploaded_csv.name} to input folder.")
+            csv_files = sorted(input_dir.glob("*.csv"))
+
         if st.button("Clear database", type="secondary"):
             clear_table()
             st.success("Database cleared. Load a CSV to continue.")
@@ -97,7 +104,20 @@ def main() -> None:
                 f"Loaded {len(cleaned_df)} rows. Database now has {len(df)} rows."
             )
         else:
-            df = load_table(latest_only=True)
+            df = load_table(latest_only=False)
+            if "loaded_at" in df.columns and not df.empty:
+                load_options = (
+                    df["loaded_at"]
+                    .dropna()
+                    .astype(str)
+                    .sort_values(ascending=False)
+                    .unique()
+                    .tolist()
+                )
+                if load_options:
+                    selected_load = st.selectbox(
+                        "Select load timestamp", load_options)
+                    df = df[df["loaded_at"].astype(str) == selected_load]
             df = normalize_numeric_columns(df)
             df = add_unrealized_bucket(df)
             try:
@@ -125,8 +145,10 @@ def main() -> None:
         col2.metric("Current Value", format_currency(metrics["Current Value"]))
         col3.metric("Total P&L", format_currency(metrics["Total P&L"]))
         col4.metric("Total P&L %", format_percent(metrics["Total P&L %"]))
-        realized_total = df.get("Realized P&L", pd.Series(0, index=df.index)).sum()
-        unrealized_total = df.get("Unrealized P&L", pd.Series(0, index=df.index)).sum()
+        realized_total = df.get(
+            "Realized P&L", pd.Series(0, index=df.index)).sum()
+        unrealized_total = df.get(
+            "Unrealized P&L", pd.Series(0, index=df.index)).sum()
         unrealized_pct = (
             unrealized_total / metrics["Total Investment"] * 100
             if metrics["Total Investment"]
@@ -335,7 +357,8 @@ def main() -> None:
 
         st.subheader("Reallocation Plan")
         exit_exposure = df[df["exit_tag"] == "EXIT"]["exposure"].sum()
-        partial_exposure = df[df["exit_tag"] == "PARTIAL EXIT"]["exposure"].sum()
+        partial_exposure = df[df["exit_tag"] ==
+                              "PARTIAL EXIT"]["exposure"].sum()
         capital_to_free = exit_exposure + 0.35 * partial_exposure
         winners_exposure = df[df["pnl_pct"] >= 20]["exposure"].sum()
 
