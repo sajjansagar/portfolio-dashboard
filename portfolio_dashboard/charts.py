@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -11,19 +12,31 @@ NEUTRAL_COLOR = "#7A7A7A"
 
 
 def allocation_pie(df: pd.DataFrame, top_n: int) -> go.Figure:
-    allocation_df = df.nlargest(top_n, "Value at Market Price").copy()
+    # Ensure numeric; sort by value descending and take top N
     market_vals = pd.to_numeric(
-        allocation_df["Value at Market Price"], errors="coerce"
+        df["Value at Market Price"], errors="coerce"
     ).fillna(0)
-    # If in lakhs (max <= 100), convert to INR for display
+    # If in lakhs (max <= 100), convert to INR
     if market_vals.max() > 0 and market_vals.max() <= 100:
         market_vals = market_vals * 100_000
-    allocation_df["Value at Market Price"] = market_vals
-    allocation_df["_hover_value"] = market_vals.map(
-        lambda v: format_currency(v))
+    allocation_df = (
+        df.assign(_value=market_vals)
+        .sort_values("_value", ascending=False)
+        .head(top_n)
+        .copy()
+    )
+    values = allocation_df["_value"].values
+    total = float(values.sum())
+    if total <= 0:
+        # Fallback: equal weights if no positive values
+        allocation_df["_value"] = np.ones(
+            len(allocation_df)) / len(allocation_df)
+    allocation_df["_hover_value"] = allocation_df["_value"].map(
+        lambda v: format_currency(v)
+    )
     fig = px.pie(
         allocation_df,
-        values="Value at Market Price",
+        values="_value",
         names="Stock Symbol",
         hole=0.55,
         custom_data=["_hover_value"],
