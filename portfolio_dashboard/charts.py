@@ -24,7 +24,12 @@ def allocation_pie(df: pd.DataFrame, top_n: int) -> go.Figure:
 
 
 def top_holdings_bar(df: pd.DataFrame, top_n: int) -> go.Figure:
-    top_holdings = df.nlargest(top_n, "Value at Market Price").copy()
+    # Top N by market value, descending (largest first = tallest bar on left)
+    top_holdings = (
+        df.sort_values("Value at Market Price", ascending=False)
+        .head(top_n)
+        .copy()
+    )
     market_vals = pd.to_numeric(
         top_holdings["Value at Market Price"], errors="coerce"
     ).fillna(0)
@@ -37,6 +42,8 @@ def top_holdings_bar(df: pd.DataFrame, top_n: int) -> go.Figure:
     top_holdings["_hover_market"] = market_vals.map(
         lambda v: format_currency(v))
     top_holdings["_hover_pl"] = total_pl.map(lambda v: format_currency(v))
+    # X-axis order = our dataframe order (largest market value first)
+    symbol_order = top_holdings["Stock Symbol"].tolist()
     fig = px.bar(
         top_holdings,
         x="Stock Symbol",
@@ -54,7 +61,9 @@ def top_holdings_bar(df: pd.DataFrame, top_n: int) -> go.Figure:
     )
     fig.update_layout(
         xaxis_title="",
-        yaxis_title="Value at Market Price",
+        yaxis_title="Value at Market Price (₹)",
+        yaxis_tickformat=",.0f",
+        xaxis={"categoryorder": "array", "categoryarray": symbol_order},
         coloraxis_showscale=False,
         margin=dict(t=10, l=10, r=10, b=10),
     )
