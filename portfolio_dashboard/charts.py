@@ -25,25 +25,31 @@ def allocation_pie(df: pd.DataFrame, top_n: int) -> go.Figure:
 
 def top_holdings_bar(df: pd.DataFrame, top_n: int) -> go.Figure:
     top_holdings = df.nlargest(top_n, "Value at Market Price").copy()
-    top_holdings["Value at Market Price"] = pd.to_numeric(
+    market_vals = pd.to_numeric(
         top_holdings["Value at Market Price"], errors="coerce"
     ).fillna(0)
-    top_holdings["Total P&L"] = pd.to_numeric(
+    total_pl = pd.to_numeric(
         top_holdings["Total P&L"], errors="coerce"
     ).fillna(0)
+    top_holdings["Value at Market Price"] = market_vals
+    top_holdings["Total P&L"] = total_pl
+    # Pre-format for tooltip so Plotly shows actual values (no template formatting)
+    top_holdings["_hover_market"] = market_vals.map(
+        lambda v: format_currency(v))
+    top_holdings["_hover_pl"] = total_pl.map(lambda v: format_currency(v))
     fig = px.bar(
         top_holdings,
         x="Stock Symbol",
         y="Value at Market Price",
         color="Total P&L",
         color_continuous_scale=[NEG_COLOR, POS_COLOR],
-        custom_data=["Value at Market Price", "Total P&L"],
+        custom_data=["_hover_market", "_hover_pl"],
     )
     fig.update_traces(
         hovertemplate=(
             "<b>%{x}</b><br>"
-            "Value at Market Price: ₹%{customdata[0]:,.0f}<br>"
-            "Total P&L: ₹%{customdata[1]:,.0f}<extra></extra>"
+            "Value at Market Price: %{customdata[0]}<br>"
+            "Total P&L: %{customdata[1]}<extra></extra>"
         )
     )
     fig.update_layout(
