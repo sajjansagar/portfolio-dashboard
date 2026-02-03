@@ -36,11 +36,17 @@ def top_holdings_bar(df: pd.DataFrame, top_n: int) -> go.Figure:
     total_pl = pd.to_numeric(
         top_holdings["Total P&L"], errors="coerce"
     ).fillna(0)
+    # If values are in lakhs (typical range 0.x–100), convert to INR for Y-axis
+    max_market = float(market_vals.max())
+    if max_market > 0 and max_market <= 100:
+        market_vals = market_vals * 100_000  # lakhs -> INR
+    # Use actual INR for bar height and Y-axis
     top_holdings["Value at Market Price"] = market_vals
     top_holdings["Total P&L"] = total_pl
-    # Pre-format for tooltip so Plotly shows actual values (no template formatting)
+    # Pre-format for tooltip
     top_holdings["_hover_market"] = market_vals.map(
-        lambda v: format_currency(v))
+        lambda v: format_currency(v)
+    )
     top_holdings["_hover_pl"] = total_pl.map(lambda v: format_currency(v))
     # X-axis order = our dataframe order (largest market value first)
     symbol_order = top_holdings["Stock Symbol"].tolist()
@@ -63,6 +69,7 @@ def top_holdings_bar(df: pd.DataFrame, top_n: int) -> go.Figure:
         xaxis_title="",
         yaxis_title="Value at Market Price (₹)",
         yaxis_tickformat=",.0f",
+        yaxis_rangemode="tozero",
         xaxis={"categoryorder": "array", "categoryarray": symbol_order},
         coloraxis_showscale=False,
         margin=dict(t=10, l=10, r=10, b=10),
