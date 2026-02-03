@@ -111,8 +111,8 @@ def unrealized_heatmap(df: pd.DataFrame) -> go.Figure:
     heatmap_df = ordered[["Stock Symbol", "Unrealized P&L"]].set_index(
         "Stock Symbol"
     )
-    text_values = heatmap_df.T.applymap(
-        lambda x: f"₹{x:,.0f}" if pd.notna(x) else ""
+    text_values = heatmap_df.T.apply(
+        lambda col: col.map(lambda x: f"₹{x:,.0f}" if pd.notna(x) else "")
     ).values
     fig = px.imshow(
         heatmap_df.T,
